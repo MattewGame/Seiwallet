@@ -3,17 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sei Wallet - Real Prototype</title>
+    <title>SEI Standalone Wallet</title>
+    
+    <!-- Библиотеки CosmJS -->
+    <script src="https://unpkg.com/@cosmjs/encoding@0.31.0/build/encoding.umd.js"></script>
+    <script src="https://unpkg.com/@cosmjs/crypto@0.31.0/build/crypto.umd.js"></script>
+    <script src="https://unpkg.com/@cosmjs/proto-signing@0.31.0/build/proto-signing.umd.js"></script>
+    <script src="https://unpkg.com/@cosmjs/stargate@0.31.0/build/stargate.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
     <style>
         :root {
-            --primary: #0a58ca;
-            --primary-dark: #0a4bac;
-            --secondary: #6c757d;
-            --success: #198754;
-            --danger: #dc3545;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --border: #dee2e6;
+            --primary: #1e40af;
+            --secondary: #1e3a8a;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --dark: #0f172a;
+            --light: #f8fafc;
         }
         
         * {
@@ -23,9 +30,10 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
             min-height: 100vh;
+            color: var(--light);
             padding: 20px;
         }
         
@@ -34,246 +42,266 @@
             margin: 0 auto;
         }
         
-        .app-header {
+        header {
             text-align: center;
             margin-bottom: 30px;
-            color: white;
+            padding: 20px;
         }
         
-        .app-header h1 {
-            font-size: 2.5rem;
+        .logo {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin-bottom: 10px;
         }
         
-        .app-header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1em;
         }
         
-        .main-content {
+        .network-status {
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+        
+        .status-dot.offline {
+            background: #ef4444;
+        }
+        
+        .wallet-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 25px;
             margin-bottom: 30px;
         }
         
+        @media (max-width: 768px) {
+            .wallet-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         .card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            background: rgba(30, 41, 59, 0.8);
             backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
         
-        .wallet-card {
-            grid-column: 1 / -1;
-        }
-        
-        .card h2 {
-            color: var(--dark);
+        .section-title {
+            font-size: 1.4em;
             margin-bottom: 20px;
-            font-size: 1.5rem;
+            color: #60a5fa;
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-        
-        .card h2 i {
-            color: var(--primary);
-        }
-        
-        .wallet-info {
-            background: var(--light);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .address-display {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .address {
-            font-family: 'Courier New', monospace;
-            background: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            flex: 1;
-            word-break: break-all;
-        }
-        
-        .copy-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .copy-btn:hover {
-            background: var(--primary-dark);
         }
         
         .balance-display {
             text-align: center;
-            padding: 20px;
-            background: linear-gradient(135deg, var(--primary), #667eea);
+            padding: 25px;
+            background: linear-gradient(135deg, #1d4ed8, #3730a3);
             border-radius: 12px;
-            color: white;
             margin-bottom: 20px;
         }
         
         .balance-amount {
-            font-size: 3rem;
+            font-size: 3em;
             font-weight: bold;
             margin: 10px 0;
         }
         
-        .balance-label {
-            font-size: 1.2rem;
+        .balance-usd {
+            font-size: 1.1em;
             opacity: 0.9;
         }
         
-        .action-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
-            margin-top: 20px;
+        .address-box {
+            background: rgba(30, 41, 59, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(148, 163, 184, 0.2);
         }
         
         .btn {
-            padding: 12px 24px;
-            border-radius: 10px;
+            padding: 12px 20px;
             border: none;
-            font-size: 1rem;
+            border-radius: 10px;
+            font-size: 1em;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
+            transition: all 0.2s ease;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
         }
         
         .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-        }
-        
-        .btn-secondary {
-            background: var(--secondary);
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
         }
         
         .btn-success {
-            background: var(--success);
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
         }
         
         .btn-danger {
-            background: var(--danger);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(148, 163, 184, 0.2);
+            color: white;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
         
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none !important;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
         }
         
         .form-group {
             margin-bottom: 20px;
         }
         
-        .form-group label {
+        .form-label {
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: var(--dark);
+            color: #cbd5e1;
         }
         
-        .form-control {
+        .form-input {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
+            padding: 12px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            color: white;
+            font-size: 1em;
         }
         
-        .form-control:focus {
+        .form-input:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: #3b82f6;
         }
         
-        .transactions-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .transaction-item {
-            padding: 15px;
-            border-bottom: 1px solid var(--border);
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 15px;
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
             align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
         
-        .transaction-item:last-child {
-            border-bottom: none;
+        .modal.active {
+            display: flex;
         }
         
-        .tx-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--light);
+        .modal-content {
+            background: var(--dark);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.2);
         }
         
-        .tx-info h4 {
-            margin-bottom: 5px;
+        .warning-box {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
         }
         
-        .tx-amount {
-            font-weight: bold;
-            font-size: 1.1rem;
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
         }
         
-        .tx-positive {
-            color: var(--success);
-        }
-        
-        .tx-negative {
-            color: var(--danger);
-        }
-        
-        .status-message {
+        .notification {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
             padding: 15px 25px;
             border-radius: 10px;
-            color: white;
-            font-weight: 600;
-            z-index: 1000;
+            background: var(--dark);
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
             animation: slideIn 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 400px;
         }
         
         @keyframes slideIn {
@@ -287,50 +315,17 @@
             }
         }
         
-        .status-success {
-            background: var(--success);
-        }
-        
-        .status-error {
-            background: var(--danger);
-        }
-        
-        .status-info {
-            background: var(--primary);
-        }
-        
-        .network-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .network-btn {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid transparent;
-            border-radius: 8px;
-            background: var(--light);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .network-btn.active {
-            border-color: var(--primary);
-            background: rgba(10, 88, 202, 0.1);
-        }
-        
         .loading {
             text-align: center;
             padding: 40px;
         }
         
         .spinner {
+            border: 3px solid rgba(148, 163, 184, 0.2);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
             width: 40px;
             height: 40px;
-            border: 4px solid var(--border);
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
         }
@@ -340,214 +335,439 @@
             100% { transform: rotate(360deg); }
         }
         
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .action-buttons {
-                grid-template-columns: 1fr;
-            }
-            
-            .balance-amount {
-                font-size: 2rem;
-            }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #64748b;
+            font-size: 0.9em;
         }
+        
+        .tab-container {
+            margin-top: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            opacity: 1;
+            border-bottom: 2px solid #3b82f6;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .mnemonic-words {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 20px 0;
+        }
+        
+        .mnemonic-word {
+            background: rgba(30, 41, 59, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        .mnemonic-index {
+            font-size: 0.8em;
+            color: #10b981;
+            margin-right: 5px;
+        }
+        
+        .transaction-item {
+            background: rgba(30, 41, 59, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .gas-info {
+            background: rgba(30, 41, 59, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .qr-code {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+        
+        .password-strength {
+            height: 4px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .password-strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .strength-weak { background: #ef4444; width: 33%; }
+        .strength-medium { background: #f59e0b; width: 66%; }
+        .strength-strong { background: #10b981; width: 100%; }
     </style>
-    <!-- Sei.js через CDN -->
-    <script src="https://unpkg.com/@sei-js/core@latest/dist/index.umd.js"></script>
-    <!-- Chart.js для графиков -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <div class="app-header">
-            <h1>🌊 Sei Wallet</h1>
-            <p>Полнофункциональный криптокошелёк для сети Sei</p>
+        <header>
+            <div class="logo">
+                <i class="fas fa-wallet"></i> SEI WALLET
+            </div>
+            <p class="subtitle">Самостоятельный криптокошелек для сети SEI</p>
+        </header>
+        
+        <div class="network-status">
+            <div class="status-dot" id="networkStatus"></div>
+            <span id="networkStatusText">Проверка сети...</span>
         </div>
         
-        <div class="network-selector">
-            <button class="network-btn active" data-network="mainnet">🌐 Mainnet</button>
-            <button class="network-btn" data-network="testnet">🧪 Testnet</button>
-        </div>
-        
-        <div class="main-content">
-            <div class="card wallet-card">
-                <h2><i>👛</i> Мой Кошелёк</h2>
+        <div class="wallet-container">
+            <!-- Левая колонка -->
+            <div class="card">
+                <h2 class="section-title">
+                    <i class="fas fa-coins"></i> Баланс кошелька
+                </h2>
                 
-                <div id="walletConnected" style="display: none;">
-                    <div class="wallet-info">
-                        <div class="address-display">
-                            <input type="text" class="address" id="walletAddress" readonly>
-                            <button class="copy-btn" id="copyAddressBtn">
-                                <i>📋</i> Копировать
-                            </button>
+                <div class="balance-display">
+                    <div class="balance-amount" id="balanceAmount">0</div>
+                    <div class="balance-usd" id="balanceUsd">≈ $0.00</div>
+                    <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">SEI</div>
+                </div>
+                
+                <div class="address-box">
+                    <span id="walletAddress">Кошелек не создан</span>
+                    <button onclick="copyAddress()" class="btn btn-secondary" style="padding: 8px 12px;">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                
+                <div class="btn-group">
+                    <button onclick="showModal('sendModal')" class="btn btn-primary" id="sendBtn" disabled>
+                        <i class="fas fa-paper-plane"></i> Отправить
+                    </button>
+                    <button onclick="updateBalance()" class="btn btn-secondary" id="refreshBtn" disabled>
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                    <button onclick="showModal('receiveModal')" class="btn btn-success" id="receiveBtn" disabled>
+                        <i class="fas fa-qrcode"></i> Получить
+                    </button>
+                </div>
+                
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button onclick="showModal('backupModal')" class="btn btn-secondary" id="backupBtn" disabled>
+                        <i class="fas fa-key"></i> Backup
+                    </button>
+                    <button onclick="logout()" class="btn btn-danger" id="logoutBtn" disabled>
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </button>
+                </div>
+                
+                <div class="tab-container" style="margin-top: 30px;">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab('transactions')">Транзакции</div>
+                        <div class="tab" onclick="switchTab('info')">Информация</div>
+                    </div>
+                    
+                    <div class="tab-content active" id="transactionsTab">
+                        <div id="transactionsList">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <p>Кошелек не подключен</p>
+                            </div>
                         </div>
-                        
-                        <div class="balance-display">
-                            <div class="balance-label">Баланс</div>
-                            <div class="balance-amount" id="seiBalance">0</div>
-                            <div class="balance-label">SEI</div>
+                    </div>
+                    
+                    <div class="tab-content" id="infoTab">
+                        <div id="walletInfoContent">
+                            <div class="info-box">
+                                <h4><i class="fas fa-info-circle"></i> Информация о сети</h4>
+                                <p>Сеть: <span id="currentNetworkInfo">SEI Mainnet</span></p>
+                                <p>Chain ID: <span id="currentChainId">pacific-1</span></p>
+                            </div>
                         </div>
-                        
-                        <div class="action-buttons">
-                            <button class="btn btn-primary" id="sendBtn">
-                                <i>↗️</i> Отправить
-                            </button>
-                            <button class="btn btn-success" id="receiveBtn">
-                                <i>↙️</i> Получить
-                            </button>
-                            <button class="btn btn-secondary" id="viewExplorerBtn">
-                                <i>🔍</i> Explorer
-                            </button>
-                            <button class="btn btn-danger" id="disconnectBtn">
-                                <i>🚪</i> Выйти
-                            </button>
-                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Правая колонка -->
+            <div class="card">
+                <h2 class="section-title">
+                    <i class="fas fa-user"></i> Управление кошельком
+                </h2>
+                
+                <div id="loginSection">
+                    <div class="info-box">
+                        <strong><i class="fas fa-shield-alt"></i> Безопасность:</strong>
+                        <p>Все данные хранятся локально в вашем браузере. Никогда не передавайте мнемоническую фразу.</p>
+                    </div>
+                    
+                    <div class="btn-group" style="margin: 30px 0;">
+                        <button onclick="showModal('createModal')" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Создать новый
+                        </button>
+                        <button onclick="showModal('importModal')" class="btn btn-primary">
+                            <i class="fas fa-file-import"></i> Импортировать
+                        </button>
+                    </div>
+                    
+                    <div class="warning-box">
+                        <strong><i class="fas fa-exclamation-triangle"></i> ВАЖНО:</strong>
+                        <p>1. Сохраните мнемоническую фразу в безопасном месте</p>
+                        <p>2. Никогда не делитесь своей мнемонической фразой</p>
+                        <p>3. Используйте только для небольших сумм</p>
+                    </div>
+                </div>
+                
+                <div id="walletControls" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">Имя кошелька:</label>
+                        <input type="text" class="form-input" id="walletName" placeholder="Мой кошелек">
                     </div>
                     
                     <div class="form-group">
-                        <label for="mnemonicView">Мнемоническая фраза (только для просмотра):</label>
-                        <textarea class="form-control" id="mnemonicView" rows="3" readonly></textarea>
-                        <small style="color: var(--danger); display: block; margin-top: 5px;">
-                            ⚠️ Никому не показывайте эту фразу! Это даёт полный доступ к вашему кошельку.
-                        </small>
-                    </div>
-                </div>
-                
-                <div id="walletDisconnected">
-                    <div class="loading" id="initialLoading">
-                        <div class="spinner"></div>
-                        <p>Загрузка кошелька...</p>
+                        <label class="form-label">Сеть:</label>
+                        <select class="form-input" id="networkSelect">
+                            <option value="mainnet">SEI Mainnet</option>
+                            <option value="testnet">SEI Testnet</option>
+                        </select>
                     </div>
                     
-                    <div id="connectOptions" style="display: none; text-align: center;">
-                        <h3 style="margin-bottom: 30px;">Подключите кошелёк</h3>
-                        <div class="action-buttons">
-                            <button class="btn btn-primary" id="connectKeplrBtn" style="padding: 15px;">
-                                <i>🔌</i> Подключить Keplr
-                            </button>
-                            <button class="btn btn-success" id="createWalletBtn" style="padding: 15px;">
-                                <i>🆕</i> Создать новый кошелёк
-                            </button>
-                            <button class="btn btn-secondary" id="importWalletBtn" style="padding: 15px;">
-                                <i>📥</i> Импортировать кошелёк
-                            </button>
-                        </div>
-                        
-                        <div id="importSection" style="display: none; margin-top: 30px;">
-                            <div class="form-group">
-                                <label for="mnemonicInput">Введите мнемоническую фразу (12 или 24 слова):</label>
-                                <textarea class="form-control" id="mnemonicInput" rows="3" 
-                                          placeholder="word1 word2 word3 ..."></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="walletName">Название кошелька (опционально):</label>
-                                <input type="text" class="form-control" id="walletName" 
-                                       placeholder="Мой Sei кошелёк">
-                            </div>
-                            <button class="btn btn-success" id="importConfirmBtn" style="width: 100%;">
-                                <i>✅</i> Импортировать кошелёк
-                            </button>
-                        </div>
+                    <button onclick="saveWalletSettings()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                        <i class="fas fa-save"></i> Сохранить настройки
+                    </button>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button onclick="checkNetworkStatus()" class="btn btn-secondary">
+                            <i class="fas fa-network-wired"></i> Проверить сеть
+                        </button>
                     </div>
                 </div>
-            </div>
-            
-            <div class="card">
-                <h2><i>💸</i> Отправить SEI</h2>
-                <div class="form-group">
-                    <label for="recipientAddress">Адрес получателя:</label>
-                    <input type="text" class="form-control" id="recipientAddress" 
-                           placeholder="sei1...">
-                </div>
-                <div class="form-group">
-                    <label for="sendAmount">Количество SEI:</label>
-                    <input type="number" class="form-control" id="sendAmount" 
-                           placeholder="0.0" step="0.001" min="0">
-                </div>
-                <div class="form-group">
-                    <label for="transactionMemo">Примечание (опционально):</label>
-                    <input type="text" class="form-control" id="transactionMemo" 
-                           placeholder="Описание транзакции">
-                </div>
-                <button class="btn btn-primary" id="sendTransactionBtn" style="width: 100%;" disabled>
-                    <i>🚀</i> Отправить транзакцию
-                </button>
-                <div id="feeEstimate" style="margin-top: 15px; font-size: 0.9em; color: var(--secondary);">
-                    Комиссия: ~0.001 SEI
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2><i>📊</i> Статистика</h2>
-                <canvas id="balanceChart" height="200"></canvas>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 0.9em; color: var(--secondary);">Всего транзакций</div>
-                        <div style="font-size: 1.5em; font-weight: bold;" id="totalTransactions">0</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 0.9em; color: var(--secondary);">Активов</div>
-                        <div style="font-size: 1.5em; font-weight: bold;" id="totalAssets">1</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2><i>📜</i> История транзакций</h2>
-                <div class="transactions-list" id="transactionsList">
-                    <div class="loading" id="txLoading">
-                        <div class="spinner" style="width: 20px; height: 20px;"></div>
-                        <p>Загрузка транзакций...</p>
-                    </div>
-                </div>
-                <button class="btn btn-secondary" id="refreshTxBtn" style="width: 100%; margin-top: 15px;">
-                    <i>🔄</i> Обновить
-                </button>
             </div>
         </div>
         
-        <div class="card" style="text-align: center; margin-top: 20px;">
-            <h3>🔗 Интеграция с экосистемой Sei</h3>
-            <div style="display: flex; justify-content: center; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
-                <button class="btn btn-secondary" id="stakeBtn">
-                    <i>🎯</i> Стейкинг
-                </button>
-                <button class="btn btn-secondary" id="swapBtn">
-                    <i>🔄</i> Обмен
-                </button>
-                <button class="btn btn-secondary" id="nftBtn">
-                    <i>🖼️</i> NFT
-                </button>
-                <button class="btn btn-secondary" id="bridgeBtn">
-                    <i>🌉</i> Бридж
-                </button>
-            </div>
-        </div>
+        <footer>
+            <p>SEI Standalone Wallet v2.0 | Все данные хранятся локально</p>
+            <p style="margin-top: 10px; font-size: 0.8em; color: #64748b;">
+                Используйте на свой риск. Всегда делайте backup мнемонической фразы.
+            </p>
+        </footer>
     </div>
     
     <!-- Модальные окна -->
-    <div id="receiveModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div class="card" style="max-width: 500px; width: 90%;">
-            <h2><i>📥</i> Получить SEI</h2>
-            <div style="text-align: center; margin: 20px 0;">
-                <div id="qrCode"></div>
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideModal('createModal')">&times;</button>
+            <h2 style="margin-bottom: 20px;">Создание нового кошелька</h2>
+            
+            <div class="form-group">
+                <label class="form-label">Имя кошелька:</label>
+                <input type="text" class="form-input" id="newWalletName" placeholder="Мой SEI кошелек">
             </div>
-            <div class="address-display">
-                <input type="text" class="address" id="receiveAddress" readonly>
-                <button class="copy-btn" id="copyReceiveBtn">
-                    <i>📋</i> Копировать
-                </button>
+            
+            <div class="form-group">
+                <label class="form-label">Пароль (минимум 8 символов):</label>
+                <input type="password" class="form-input" id="newPassword" placeholder="Создайте надежный пароль">
+                <div class="password-strength">
+                    <div class="password-strength-bar" id="passwordStrength"></div>
+                </div>
             </div>
-            <button class="btn btn-secondary" id="closeReceiveBtn" style="width: 100%; margin-top: 20px;">
-                Закрыть
+            
+            <div class="form-group">
+                <label class="form-label">Подтвердите пароль:</label>
+                <input type="password" class="form-input" id="confirmPassword" placeholder="Повторите пароль">
+            </div>
+            
+            <button onclick="createNewWallet()" class="btn btn-success" style="width: 100%; margin-top: 20px;" id="createWalletBtn">
+                <i class="fas fa-plus"></i> Создать кошелек
             </button>
         </div>
     </div>
-
-    <div id="statusMessage"></div>
     
-    <script src="wallet.js"></script>
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideModal('importModal')">&times;</button>
+            <h2 style="margin-bottom: 20px;">Импорт кошелька</h2>
+            
+            <div class="form-group">
+                <label class="form-label">Мнемоническая фраза (12 или 24 слова):</label>
+                <textarea class="form-input" id="importMnemonic" rows="3" placeholder="word1 word2 word3 ..." style="height: 100px;"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Имя кошелька:</label>
+                <input type="text" class="form-input" id="importWalletName" placeholder="Импортированный кошелек">
+            </div>
+            
+            <button onclick="importWallet()" class="btn btn-primary" style="width: 100%;" id="importWalletBtn">
+                <i class="fas fa-file-import"></i> Импортировать кошелек
+            </button>
+        </div>
+    </div>
+    
+    <div id="sendModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideModal('sendModal')">&times;</button>
+            <h2 style="margin-bottom: 20px;">Отправить SEI</h2>
+            
+            <div class="form-group">
+                <label class="form-label">Адрес получателя:</label>
+                <input type="text" class="form-input" id="sendToAddress" placeholder="sei1...">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Количество SEI:</label>
+                <input type="number" class="form-input" id="sendAmount" placeholder="0.0" step="0.001" min="0">
+                <div style="margin-top: 5px; font-size: 0.9em; color: #94a3b8;">
+                    Доступно: <span id="availableBalance">0</span> SEI
+                    <button onclick="setMaxAmount()" class="btn btn-secondary" style="padding: 2px 8px; margin-left: 10px; font-size: 0.8em;">
+                        MAX
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Комиссия:</label>
+                <select class="form-input" id="feeOption">
+                    <option value="low">Низкая (0.001 SEI)</option>
+                    <option value="medium" selected>Средняя (0.002 SEI)</option>
+                    <option value="high">Высокая (0.005 SEI)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Memo (опционально):</label>
+                <input type="text" class="form-input" id="sendMemo" placeholder="Комментарий к транзакции">
+            </div>
+            
+            <div class="gas-info">
+                <div>
+                    <div style="font-size: 0.9em; color: #94a3b8;">Комиссия:</div>
+                    <div id="feeAmount">0.002 SEI</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.9em; color: #94a3b8;">Итого:</div>
+                    <div id="totalAmount" style="font-weight: bold;">0 SEI</div>
+                </div>
+            </div>
+            
+            <button onclick="sendTransaction()" class="btn btn-primary" style="width: 100%;" id="sendTransactionBtn">
+                <i class="fas fa-paper-plane"></i> Отправить транзакцию
+            </button>
+        </div>
+    </div>
+    
+    <div id="receiveModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideModal('receiveModal')">&times;</button>
+            <h2 style="margin-bottom: 20px;">Получить SEI</h2>
+            
+            <div style="text-align: center;">
+                <div class="qr-code" id="qrCodeContainer">
+                    <!-- QR код будет сгенерирован динамически -->
+                    <canvas id="qrCodeCanvas" width="200" height="200"></canvas>
+                </div>
+            </div>
+            
+            <div class="address-box" style="margin-top: 20px;">
+                <span id="receiveAddress"></span>
+                <button onclick="copyReceiveAddress()" class="btn btn-secondary">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            
+            <p style="margin-top: 20px; text-align: center; color: #94a3b8;">
+                Отправьте SEI на этот адрес
+            </p>
+        </div>
+    </div>
+    
+    <div id="backupModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideModal('backupModal')">&times;</button>
+            <h2 style="margin-bottom: 20px;">Backup кошелька</h2>
+            
+            <div class="warning-box">
+                <p><strong><i class="fas fa-exclamation-triangle"></i> ВНИМАНИЕ:</strong> Никогда не делитесь этими данными!</p>
+            </div>
+            
+            <div id="backupContent">
+                <p>Ваша мнемоническая фраза:</p>
+                <div class="form-group">
+                    <div class="mnemonic-words" id="backupMnemonic"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Адрес кошелька:</label>
+                    <input type="text" class="form-input" id="backupAddress" readonly>
+                </div>
+                
+                <div class="warning-box">
+                    <p><strong>ВАЖНО:</strong> Запишите эти слова на бумаге и храните в безопасном месте!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Диалог подтверждения -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;"><i class="fas fa-shield-alt"></i> Подтверждение</h2>
+            
+            <div class="info-box">
+                <p id="confirmMessage"></p>
+            </div>
+            
+            <div class="btn-group" style="margin-top: 20px;">
+                <button onclick="confirmAction()" class="btn btn-primary">
+                    <i class="fas fa-check"></i> Подтвердить
+                </button>
+                <button onclick="hideModal('confirmModal')" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Уведомления -->
+    <div id="notification" class="notification" style="display: none;">
+        <i class="fas fa-info-circle"></i>
+        <span id="notificationMessage"></span>
+    </div>
+    
+    <script src="wallet-core-vpn.js"></script>
 </body>
 </html>
